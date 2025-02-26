@@ -95,3 +95,49 @@ fn idxd_comp_lzma() {
     extract(&mut reader, &meta, 0, &mut target, 1024, 0).unwrap();
     assert_eq!(dh::data::close(target), b"Hello, world!");
 }
+
+#[test]
+fn idxd_comp_dflt() {
+    let mut reader = dh::file::open_r("tests/samples/idxd-comp-dflt.hssp").unwrap();
+    let meta = metadata(&mut reader, None).unwrap();
+
+    assert!(verify_integrity(&mut reader, &meta).unwrap());
+    assert_eq!(meta.version, 4);
+    assert_eq!(meta.checksum, 2309729710);
+    assert!(meta.encryption.is_none());
+    let compression = meta.compression.as_ref().unwrap();
+    assert!(compression.method == Method::DeflateZlib);
+    assert_eq!(meta.files.len(), 1);
+    assert_eq!(meta.files[0].path, "test.txt");
+    assert!(!meta.files[0].directory);
+    assert_eq!(meta.files[0].offset, 104);
+    assert_eq!(meta.files[0].length, 13);
+    assert!(!meta.files[0].main);
+
+    let mut target = dh::data::write_new(meta.files[0].length);
+    extract(&mut reader, &meta, 0, &mut target, 1024, 0).unwrap();
+    assert_eq!(dh::data::close(target), b"Hello, world!");
+}
+
+#[test]
+fn idxd_comp_enc() {
+    let mut reader = dh::file::open_r("tests/samples/idxd-comp-enc.hssp").unwrap();
+    let meta = metadata(&mut reader, Some("Password")).unwrap();
+
+    assert!(verify_integrity(&mut reader, &meta).unwrap());
+    assert_eq!(meta.version, 4);
+    assert_eq!(meta.checksum, 2309729710);
+    assert!(meta.encryption.is_some());
+    let compression = meta.compression.as_ref().unwrap();
+    assert!(compression.method == Method::Lzma);
+    assert_eq!(meta.files.len(), 1);
+    assert_eq!(meta.files[0].path, "test.txt");
+    assert!(!meta.files[0].directory);
+    assert_eq!(meta.files[0].offset, 104);
+    assert_eq!(meta.files[0].length, 13);
+    assert!(!meta.files[0].main);
+
+    let mut target = dh::data::write_new(meta.files[0].length);
+    extract(&mut reader, &meta, 0, &mut target, 1024, 0).unwrap();
+    assert_eq!(dh::data::close(target), b"Hello, world!");
+}

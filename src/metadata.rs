@@ -63,13 +63,15 @@ pub fn metadata<'a>(reader: &'a mut dyn Readable<'a>, password: Option<&str>) ->
     let generator = reader.read_utf8(16)?;
     let generator = generator.split('\0').next().unwrap().to_string();
 
-    let mut size = reader.size()? - 128;
-    let mut decompressed = dh::data::write_new(size);
     let compression_method = match &compression {
         b"NONE" => Method::None,
         b"LZMA" => Method::Lzma,
-        _ => unimplemented!(),
+        b"DEFL" => Method::Deflate,
+        b"DFLT" => Method::DeflateZlib,
+        _ => Method::Unsupported,
     };
+    let mut size = reader.size()? - 128;
+    let mut decompressed = dh::data::write_new(size);
     size = decompress(
         reader,
         128,
